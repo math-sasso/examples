@@ -1,4 +1,3 @@
-// Home.js
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import styles from '../styles/Home.module.css';
@@ -6,17 +5,29 @@ import styles from '../styles/Home.module.css';
 export default function Home() {
   const [text, setText] = useState('');
   const [imageUrl, setImageUrl] = useState('');
+  const [debouncedText, setDebouncedText] = useState('');
+
+  useEffect(() => {
+    const delay = 500; // Delay in milliseconds
+    const timeoutId = setTimeout(() => {
+      setDebouncedText(text);
+    }, delay);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [text]);
 
   useEffect(() => {
     const fetchResponse = async () => {
-      if (text) {
+      if (debouncedText) {
         try {
           const response = await axios.post(
             'http://localhost:8000/sdxl_streaming',
-            { content: text },
+            { content: debouncedText },
             { responseType: 'blob' }
           );
-          
+
           const imageBlob = response.data;
           const imageObjectUrl = URL.createObjectURL(imageBlob);
           setImageUrl(imageObjectUrl);
@@ -26,7 +37,7 @@ export default function Home() {
       }
     };
     fetchResponse();
-  }, [text]);
+  }, [debouncedText]);
 
   const handleChange = (e) => {
     setText(e.target.value);
@@ -35,7 +46,7 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <h1 className={styles.title}>Stable Diffusion Stream</h1>
-      <input className={styles.inputField}  type="text" value={text} onChange={handleChange} />
+      <input className={styles.inputField} type="text" value={text} onChange={handleChange} />
       {imageUrl && <img className={styles.image} src={imageUrl} alt="Generated" />}
     </div>
   );

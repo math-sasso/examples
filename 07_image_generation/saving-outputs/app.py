@@ -11,6 +11,7 @@ BEAM_OUTPUT_PATH = "/tmp/image.png"
 
 
 @function(
+    name="beam_image_save_test",
     image=BeamImage(
         python_packages=[
             "pillow",

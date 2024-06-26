@@ -23,18 +23,11 @@ async def fetch_image(url: str) -> AsyncIterable[bytes]:
             async for chunk in response.content.iter_chunked(1024):
                 yield chunk
 
-# async def generate_image(content: str) -> AsyncIterable[str]:
-#     beam_service = BeamService(prompt=content)
-#     json_result = beam_service.call_api()
-#     yield json_result.get('image_url',"")
-
 async def generate_image(content: str) -> AsyncIterable[bytes]:
     beam_service = BeamService(prompt=content)
     json_result = beam_service.call_api()
     image_url = json_result.get('image', "")
-    # async for chunk in fetch_image(image_url):
-    #     yield chunk
-
+    
     # Fetch the image bytes using the image URL
     async with aiohttp.ClientSession() as session:
         async with session.get(image_url) as response:

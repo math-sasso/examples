@@ -11,23 +11,37 @@ image = Image(
         "diffusers[torch]",
         "transformers",
         "pillow",
-        "pandas" # only to reload
+        "safetensors",
+        "pandas"
     ],
 )
 
 
 def load_models():
-    from diffusers import AutoPipelineForText2Image
     import torch
+    from diffusers import StableDiffusionXLPipeline, UNet2DConditionModel, EulerDiscreteScheduler
+    from huggingface_hub import hf_hub_download
+    from safetensors.torch import load_file
 
-    pipe = AutoPipelineForText2Image.from_pretrained(BASE_MODEL, torch_dtype=torch.float16, variant="fp16")
+    base = "stabilityai/stable-diffusion-xl-base-1.0"
+    repo = "ByteDance/SDXL-Lightning"
+    ckpt = "sdxl_lightning_4step_unet.safetensors" # Use the correct ckpt for your step setting!
+
+
+    # Load model.
+    pipe = StableDiffusionXLPipeline.from_pretrained(base, torch_dtype=torch.float16, variant="fp16").to("cuda")
+    pipe.load_lora_weights(hf_hub_download(repo, ckpt))
+    pipe.fuse_lora()
+
+    # Ensure sampler uses "trailing" timesteps.
+    pipe.scheduler = EulerDiscreteScheduler.from_config(pipe.scheduler.config, timestep_spacing="trailing")
+
     pipe.to("cuda")
 
     return pipe
 
-
 @endpoint(
-    name="sdxl-turbo-streamming",
+    name="sdxl-lightning-streamming",
     image=image,
     on_start=load_models,
     keep_warm_seconds=60,
@@ -41,7 +55,7 @@ def generate(context, prompt):
 
     pipe = context.on_start_value
 
-    image = pipe(prompt=prompt, num_inference_steps=8, guidance_scale=0.0).images[0]
+    image = pipe(prompt=prompt, num_inference_steps=4, guidance_scale=0.0).images[0]
 
     print(f"Saved Image: {image}")
 
